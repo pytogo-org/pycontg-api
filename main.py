@@ -15,7 +15,53 @@ from datas import (
     update_something,
 )
 
-app = FastAPI()
+
+app = FastAPI(
+    title="PyCon Togo API",
+    description="API for PyCon Togo",
+    version="1.0.0",
+    contact={
+        "name": "PyCon Togo",
+        "url": "https://pycontg.pytogo.org/",
+        "email": "contact@pytogo.org",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=[
+        {
+            "name": "sponsor",
+            "description": "Sponsor related operations",
+        },
+        {
+            "name": "volunteer",
+            "description": "Volunteer related operations",
+        },
+        {
+            "name": "registration",
+            "description": "Registration related operations",
+        },
+    ],
+    swagger_ui_parameters={
+        "defaultModelsExpandDepth": -1,
+        "defaultModelExpandDepth": -1,
+        "defaultModelRendering": "model",
+        "defaultModelsTabEnabled": False,
+        "defaultModelTabEnabled": False,
+        
+        }
+
+)
+
+@app.get("/favicon.ico")
+def favicon():
+    """
+    Endpoint to serve the favicon.
+    """
+    return HTMLResponse(
+        '<link rel="icon" href="https://www.pytogo.org/assets/images/favicon.png" type="image/x-icon">'
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,11 +81,22 @@ def read_root():
 
 # security = HTTPBasic()
 
+# costumize the documentation by adding a title and description
+
 
 @app.get("/api/sponsor-tiers")
 def api_sponsor_tiers():
     """
     API endpoint to get all sponsor tiers.
+
+    data schema:
+    - name: str
+    - title: str
+    - availability: int
+    - available: int
+    - amount_cfa: int
+    - amount_usd: float
+    - advantages: List[str]
     """
     tiers = get_sponsorteirs()
     return tiers
@@ -48,6 +105,24 @@ def api_sponsor_tiers():
 def api_volunteer_inquiries():
     """
     API endpoint to get all volunteer inquiries.
+
+    data schema:
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - country_city: str
+    - motivation: str
+    - availability_before: bool
+    - availability_during: bool
+    - availability_after: bool
+    - accepted: bool
+    - experience: str
+    - registration: bool
+    - technical: bool
+    - logistic: bool
+    - social: bool
+    - photography: bool
     """
     inquiries = get_everything("volunteerinquiry")
     return inquiries
@@ -56,6 +131,17 @@ def api_volunteer_inquiries():
 def api_registrations():
     """
     API endpoint to get all registrations.
+
+    data schema:
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
     """
     registrations = get_everything("registrations")
     return registrations
@@ -64,6 +150,17 @@ def api_registrations():
 def api_sponsor_inquiries():
     """
     API endpoint to get all sponsor inquiries.
+
+    data schema:
+    - company: str
+    - email: str
+    - website: str
+    - contact: str
+    - title: str
+    - phone: str
+    - level: str
+    - message: str
+    - paid: bool
     """
     inquiries = get_everything("sponsorinquiry")
     return inquiries
@@ -72,6 +169,21 @@ def api_sponsor_inquiries():
 def api_proposals():
     """
     API endpoint to get all proposals.
+
+    data schema:
+    - format: str
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - title: str
+    - level: str
+    - talk_abstract: str
+    - talk_outline: str
+    - bio: str
+    - needs: bool
+    - technical_needs: str
+    - accepted: bool
     """
     proposals = get_everything("proposals")
     return proposals
@@ -80,6 +192,9 @@ def api_proposals():
 def api_waitlist():
     """
     API endpoint to get all waitlist inquiries.
+
+    data schema:
+    - email: str
     """
     inquiries = get_everything("waitlist")
     return inquiries
@@ -89,6 +204,18 @@ def api_waitlist():
 def api_sponsors():
     """
     API endpoint to get all sponsors who have paid.
+
+    data schema:
+    - company: str
+    - email: str
+    - website: str
+    - contact: str
+    - title: str
+    - phone: str
+    - level: str
+    - message: str
+    - paid: bool
+    - accepted: bool
     """
     sponsors = get_everything_where("sponsorinquiry", "paid", True)
     return sponsors
@@ -98,6 +225,18 @@ def api_sponsors():
 def api_update_sponsor_inquiry(id: int, data: dict):
     """
     API endpoint to update a sponsor inquiry by ID.
+
+    data schema:
+    - company: str
+    - email: str
+    - website: str
+    - contact: str
+    - title: str
+    - phone: str
+    - level: str
+    - message: str
+    - paid: bool
+
     """
     updated = update_something("sponsorinquiry", id, data)
     if updated:
@@ -117,11 +256,25 @@ def api_update_volunteer_inquiry(id: int, data: dict):
     else:
         return JSONResponse(content={"message": "Failed to update volunteer inquiry."}, status_code=400)
     
-# update proposal
 @app.put("/api/proposals/{id}")
 def api_update_proposal(id: int, data: dict):
     """
     API endpoint to update a proposal by ID.
+
+    data schema:
+    - format: str
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - title: str
+    - level: str
+    - talk_abstract: str
+    - talk_outline: str
+    - bio: str
+    - needs: bool
+    - technical_needs: str
+    - accepted: bool
     """
     updated = update_something("proposals", id, data)
     if updated:
@@ -134,6 +287,17 @@ def api_update_proposal(id: int, data: dict):
 def api_update_registration(id: int, data: dict):
     """
     API endpoint to update a registration by ID.
+
+    data schema:
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
     """
     updated = update_something("registrations", id, data)
     if updated:
@@ -146,6 +310,24 @@ def api_update_registration(id: int, data: dict):
 def api_volunteer(email: str):
     """
     API endpoint to get a volunteer inquiry by email.
+
+    data schema:
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - country_city: str
+    - motivation: str
+    - availability_before: bool
+    - availability_during: bool
+    - availability_after: bool
+    - accepted: bool
+    - experience: str
+    - registration: bool
+    - technical: bool
+    - logistic: bool
+    - social: bool
+    - photography: bool
     """
     volunteer = get_everything_where("volunteerinquiry", "email", email)
     if volunteer:
