@@ -1,0 +1,14 @@
+{
+    "builds": [
+        {
+            "src": "cats.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "cats.py"
+        }
+    ]
+}
