@@ -113,3 +113,16 @@ def get_everything_where(table, field, value):
         return {"message": "No entries found"}
     return data
 
+def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
+    """
+    Get all volunteer inquiries where motivation is not null
+    """
+    response = supabase.table(table).select("*").neq("motivation", "").execute()
+    data = response.data
+    if len(data) == 0:
+        return {"message": "No volunteer inquiries found with non-null motivation"}
+    return data
+
+if __name__ == "__main__":
+    vol = get_volunteers_inquiries_where_motivation_is_not_null()
+    print(vol)

@@ -13,6 +13,7 @@ from datas import (
     get_everything,
     get_everything_where,
     update_something,
+    get_volunteers_inquiries_where_motivation_is_not_null,
 )
 
 
@@ -125,7 +126,7 @@ def api_sponsor_tiers():
     return tiers
 
 @app.get("/api/volunteerinquiries")
-def api_volunteer_inquiries():
+def api_volunteer_inquiries(motivation: bool = None):
     """
     API endpoint to get all volunteer inquiries.
 
@@ -147,7 +148,43 @@ def api_volunteer_inquiries():
     - social: bool
     - photography: bool
     """
-    inquiries = get_everything("volunteerinquiry")
+    if motivation is not None:
+        if motivation is True:
+            inquiries = get_volunteers_inquiries_where_motivation_is_not_null(
+                "volunteerinquiry"
+            )
+        elif motivation is False:
+            inquiries = get_everything_where("volunteerinquiry", "motivation", "")
+    else:
+        inquiries = get_everything("volunteerinquiry")
+    
+    return inquiries
+
+# accepted volunteer inquiries
+@app.get("/api/volunteeraccepted")
+def api_volunteer_accepted():
+    """
+    API endpoint to get all accepted volunteer inquiries.
+
+    data schema:
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - country_city: str
+    - motivation: str
+    - availability_before: bool
+    - availability_during: bool
+    - availability_after: bool
+    - accepted: bool
+    - experience: str
+    - registration: bool
+    - technical: bool
+    - logistic: bool
+    - social: bool
+    - photography: bool
+    """
+    inquiries = get_everything_where("volunteerinquiry", "accepted", True)
     return inquiries
 
 @app.get("/api/registrations")
@@ -188,7 +225,26 @@ def api_sponsor_inquiries():
     inquiries = get_everything("sponsorinquiry")
     return inquiries
 
-@app.get("/api/proposals")
+@app.get("/api/sponsorspaid")
+def api_sponsors_paid():
+    """
+    API endpoint to get all sponsors who have paid.
+
+    data schema:
+    - company: str
+    - email: str
+    - website: str
+    - contact: str
+    - title: str
+    - phone: str
+    - level: str
+    - message: str
+    - paid: bool
+    """
+    sponsors = get_everything_where("sponsorinquiry", "paid", True)
+    return sponsors
+
+@app.get("/api/proposalsinquiries")
 def api_proposals():
     """
     API endpoint to get all proposals.
@@ -210,6 +266,29 @@ def api_proposals():
     """
     proposals = get_everything("proposals")
     return proposals
+
+@app.get("/api/proposals")
+def api_proposals_accepted():
+    """
+    API endpoint to get all accepted proposals.
+
+    data schema:
+    - format: str
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - title: str
+    - level: str
+    - talk_abstract: str
+    - talk_outline: str
+    - bio: str
+    - needs: bool
+    - technical_needs: str
+    - accepted: bool
+    """
+    accepted_proposals = get_everything_where("proposals", "accepted", True)
+    return accepted_proposals
 
 @app.get("/api/waitlist")
 def api_waitlist():
