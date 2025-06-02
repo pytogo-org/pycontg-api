@@ -111,7 +111,7 @@ def get_everything_where(table, field, value):
     data = response.data
     if len(data) == 0:
         return {"message": "No entries found"}
-    return data
+    return data[0]
 
 def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
     """
