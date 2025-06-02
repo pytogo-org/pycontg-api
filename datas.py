@@ -123,6 +123,8 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
         return {"message": "No volunteer inquiries found with non-null motivation"}
     return data
 
+
+
 if __name__ == "__main__":
     vol = get_volunteers_inquiries_where_motivation_is_not_null()
     print(vol)

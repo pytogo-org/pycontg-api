@@ -320,6 +320,8 @@ def api_sponsors():
     - accepted: bool
     """
     sponsors = get_everything_where("sponsorinquiry", "paid", True)
+    if not sponsors:
+        return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
     return sponsors
 
 # update sponsor inquiry
@@ -345,6 +347,19 @@ def api_update_sponsor_inquiry(id: int, data: dict):
         return JSONResponse(content={"message": "Sponsor inquiry updated successfully."})
     else:
         return JSONResponse(content={"message": "Failed to update sponsor inquiry."}, status_code=400)
+
+
+@app.get("/api/volunteerinquiries/{id}")
+def api_get_volunteer_inquiry(id: int):
+    """
+    API endpoint to update a volunteer inquiry by ID.
+    """
+    volunteer = get_everything_where("volunteerinquiry", "id", id)
+    if volunteer:
+        return volunteer
+    else:
+        return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
+
 
 # update volunteer inquiry
 @app.put("/api/volunteerinquiries/{id}")
