@@ -184,8 +184,62 @@ def api_volunteer_accepted():
     - social: bool
     - photography: bool
     """
-    inquiries = get_everything_where("volunteerinquiry", "accepted", True)
+    inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
     return inquiries
+
+@app.get("/api/volunteerwaiting")
+def api_volunteer_accepted():
+    """
+    API endpoint to get all accepted volunteer inquiries.
+
+    data schema:
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - country_city: str
+    - motivation: str
+    - availability_before: bool
+    - availability_during: bool
+    - availability_after: bool
+    - accepted: bool
+    - experience: str
+    - registration: bool
+    - technical: bool
+    - logistic: bool
+    - social: bool
+    - photography: bool
+    """
+    inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
+    return inquiries
+
+
+@app.get("/api/volunteerrejected")
+def api_volunteer_accepted():
+    """
+    API endpoint to get all accepted volunteer inquiries.
+
+    data schema:
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - country_city: str
+    - motivation: str
+    - availability_before: bool
+    - availability_during: bool
+    - availability_after: bool
+    - accepted: bool
+    - experience: str
+    - registration: bool
+    - technical: bool
+    - logistic: bool
+    - social: bool
+    - photography: bool
+    """
+    inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
+    return inquiries
+    
 
 @app.get("/api/registrations")
 def api_registrations():
@@ -325,28 +379,28 @@ def api_sponsors():
     return sponsors
 
 # update sponsor inquiry
-@app.put("/api/sponsorinquiries/{id}")
-def api_update_sponsor_inquiry(id: int, data: dict):
-    """
-    API endpoint to update a sponsor inquiry by ID.
+# @app.put("/api/sponsorinquiries/{id}")
+# def api_update_sponsor_inquiry(id: int, data: dict):
+#     """
+#     API endpoint to update a sponsor inquiry by ID.
 
-    data schema:
-    - company: str
-    - email: str
-    - website: str
-    - contact: str
-    - title: str
-    - phone: str
-    - level: str
-    - message: str
-    - paid: bool
+#     data schema:
+#     - company: str
+#     - email: str
+#     - website: str
+#     - contact: str
+#     - title: str
+#     - phone: str
+#     - level: str
+#     - message: str
+#     - paid: bool
 
-    """
-    updated = update_something("sponsorinquiry", id, data)
-    if updated:
-        return JSONResponse(content={"message": "Sponsor inquiry updated successfully."})
-    else:
-        return JSONResponse(content={"message": "Failed to update sponsor inquiry."}, status_code=400)
+#     """
+#     updated = update_something("sponsorinquiry", id, data)
+#     if updated:
+#         return JSONResponse(content={"message": "Sponsor inquiry updated successfully."})
+#     else:
+#         return JSONResponse(content={"message": "Failed to update sponsor inquiry."}, status_code=400)
 
 
 @app.get("/api/volunteerinquiries/{id}")
@@ -373,54 +427,54 @@ def api_update_volunteer_inquiry(id: int, data: dict):
     else:
         return JSONResponse(content={"message": "Failed to update volunteer inquiry."}, status_code=400)
     
-@app.put("/api/proposals/{id}")
-def api_update_proposal(id: int, data: dict):
-    """
-    API endpoint to update a proposal by ID.
+# @app.put("/api/proposals/{id}")
+# def api_update_proposal(id: int, data: dict):
+#     """
+#     API endpoint to update a proposal by ID.
 
-    data schema:
-    - format: str
-    - first_name: str
-    - last_name: str
-    - email: str
-    - phone: str
-    - title: str
-    - level: str
-    - talk_abstract: str
-    - talk_outline: str
-    - bio: str
-    - needs: bool
-    - technical_needs: str
-    - accepted: bool
-    """
-    updated = update_something("proposals", id, data)
-    if updated:
-        return JSONResponse(content={"message": "Proposal updated successfully."})
-    else:
-        return JSONResponse(content={"message": "Failed to update proposal."}, status_code=400)
+#     data schema:
+#     - format: str
+#     - first_name: str
+#     - last_name: str
+#     - email: str
+#     - phone: str
+#     - title: str
+#     - level: str
+#     - talk_abstract: str
+#     - talk_outline: str
+#     - bio: str
+#     - needs: bool
+#     - technical_needs: str
+#     - accepted: bool
+#     """
+#     updated = update_something("proposals", id, data)
+#     if updated:
+#         return JSONResponse(content={"message": "Proposal updated successfully."})
+#     else:
+#         return JSONResponse(content={"message": "Failed to update proposal."}, status_code=400)
 
 # check registration
-@app.put("/api/registrations/{id}")
-def api_update_registration(id: int, data: dict):
-    """
-    API endpoint to update a registration by ID.
+# @app.put("/api/registrations/{id}")
+# def api_update_registration(id: int, data: dict):
+#     """
+#     API endpoint to update a registration by ID.
 
-    data schema:
-    - fullName: str
-    - email: str
-    - phone: str
-    - organization: str
-    - country: str
-    - tshirtsize: str
-    - dietaryrestrictions: str
-    - newsletter: bool
-    - codeofconduct: bool
-    """
-    updated = update_something("registrations", id, data)
-    if updated:
-        return JSONResponse(content={"message": "Registration updated successfully."})
-    else:
-        return JSONResponse(content={"message": "Failed to update registration."}, status_code=400)
+#     data schema:
+#     - fullName: str
+#     - email: str
+#     - phone: str
+#     - organization: str
+#     - country: str
+#     - tshirtsize: str
+#     - dietaryrestrictions: str
+#     - newsletter: bool
+#     - codeofconduct: bool
+#     """
+#     updated = update_something("registrations", id, data)
+#     if updated:
+#         return JSONResponse(content={"message": "Registration updated successfully."})
+#     else:
+#         return JSONResponse(content={"message": "Failed to update registration."}, status_code=400)
 
 
 @app.get("/api/volunteer/{email}")
