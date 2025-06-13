@@ -111,6 +111,16 @@ def get_everything_where(table, field, value):
     data = response.data
     if len(data) == 0:
         return {"message": "No entries found"}
+    return data
+
+def get_something_where(table, field, value):
+    """
+    Get everything in a particular table where a specific field matches a value
+    """
+    response = supabase.table(table).select("*").eq(field, value).execute()
+    data = response.data
+    if len(data) == 0:
+        return {"message": "No entries found"}
     return data[0]
 
 def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
