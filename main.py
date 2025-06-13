@@ -416,16 +416,16 @@ def api_get_volunteer_inquiry(id: int):
 
 
 # update volunteer inquiry
-@app.put("/api/volunteerinquiries/{id}")
-def api_update_volunteer_inquiry(id: int, data: dict):
-    """
-    API endpoint to update a volunteer inquiry by ID.
-    """
-    updated = update_something("volunteerinquiry", id, data)
-    if updated:
-        return JSONResponse(content={"message": "Volunteer inquiry updated successfully."})
-    else:
-        return JSONResponse(content={"message": "Failed to update volunteer inquiry."}, status_code=400)
+# @app.put("/api/volunteerinquiries/{id}")
+# def api_update_volunteer_inquiry(id: int, data: dict):
+#     """
+#     API endpoint to update a volunteer inquiry by ID.
+#     """
+#     updated = update_something("volunteerinquiry", id, data)
+#     if updated:
+#         return JSONResponse(content={"message": "Volunteer inquiry updated successfully."})
+#     else:
+#         return JSONResponse(content={"message": "Failed to update volunteer inquiry."}, status_code=400)
     
 # @app.put("/api/proposals/{id}")
 # def api_update_proposal(id: int, data: dict):
