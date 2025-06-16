@@ -1,4 +1,7 @@
 from config import supabase
+import re
+
+
 
 
 def get_sponsorteirs():
@@ -43,6 +46,11 @@ def get_something_email(table, email):
     if len(data) == 0:
         print(f"No entry found with email: {email}")
         return None
+    
+    data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", email)
+    
+    if "phone" in data[0]:
+        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
     return data[0]
 
 def get_something_by_field(table, field, value):
@@ -54,6 +62,11 @@ def get_something_by_field(table, field, value):
     if len(data) == 0:
         print(f"No entry found with {field}: {value}")
         return None
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
     return data
 
 def get_something_by_email_firstname_lastname(table, email, firstname, lastname):
@@ -65,6 +78,9 @@ def get_something_by_email_firstname_lastname(table, email, firstname, lastname)
     if len(data) == 0:
         print(f"No entry found with email: {email}, firstname: {firstname}, lastname: {lastname}")
         return None
+    data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", data[0]["email"])
+    if "phone" in data[0]:
+        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
     return data[0]
 
 
@@ -101,6 +117,12 @@ def get_everything(table):
     data = response.data
     if len(data) == 0:
         return {"message": "No entries found"}
+    
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
     return data
 
 def get_everything_where(table, field, value):
@@ -111,6 +133,12 @@ def get_everything_where(table, field, value):
     data = response.data
     if len(data) == 0:
         return {"message": "No entries found"}
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+    
     return data
 
 def get_something_where(table, field, value):
@@ -121,6 +149,12 @@ def get_something_where(table, field, value):
     data = response.data
     if len(data) == 0:
         return {"message": "No entries found"}
+    if "email" in data[0]:
+        data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", data[0]["email"])
+    if "phone" in data[0]:
+        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
+    if len(data) > 1:
+        return {"message": "Multiple entries found, please refine your query"}
     return data[0]
 
 def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
@@ -131,6 +165,11 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
     data = response.data
     if len(data) == 0:
         return {"message": "No volunteer inquiries found with non-null motivation"}
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
     return data
 
 
