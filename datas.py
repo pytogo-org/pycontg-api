@@ -1,3 +1,5 @@
+import bcrypt
+from fastapi import HTTPException
 from config import supabase
 import re
 
@@ -103,7 +105,6 @@ def update_something(table, id, data):
     """
     response = supabase.table(table).update(data).eq("id", id).execute()
     if response:
-        print("Data updated successfully.")
         return True
     else:
         print(f"Failed to update data: {response.error}")
@@ -172,6 +173,37 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
             entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
     return data
 
+def auth_user(email: str, password: str):
+    """
+    Authenticates a user with email and password.
+    """
+
+    response = (
+        supabase.table("staff")
+        .select("id", "email", "role", "fullname", "password")
+        .eq("email", email)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+    data = response.data
+    user = data[0]
+    if not bcrypt.checkpw(
+        password.encode("utf-8"), user.get("password").encode("utf-8")
+    ):
+        raise HTTPException(
+            status_code=400, detail="Incorrect username or password pass"
+        )
+    else:
+        user_data = {
+            "id": user.get("id"),
+            "email": user.get("email"),
+            "full_name": user.get("fullname", ""),
+            "role": user.get("role", "staff"),
+        }
+
+    return user_data
 
 
 if __name__ == "__main__":

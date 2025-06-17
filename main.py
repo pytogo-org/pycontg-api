@@ -1,11 +1,16 @@
-from fastapi import FastAPI
+import typing
+
+if not hasattr(typing, "_ClassVar") and hasattr(typing, "ClassVar"):
+    typing._ClassVar = typing.ClassVar
+
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from uuid import UUID
 
-# from typing import Annotated
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-# from fastapi import Depends, FastAPI
-# from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 
 from datas import (
@@ -15,6 +20,7 @@ from datas import (
     update_something,
     get_volunteers_inquiries_where_motivation_is_not_null,
 )
+from utils import authenticate_user, create_access_token, get_current_user
 
 
 app = FastAPI(
@@ -67,6 +73,7 @@ origins = [
     "http://localhost:5000",
     "http://localhost:5500",
     "http://localhost:8080",
+    "*",
 ]
 
 app.add_middleware(
@@ -76,6 +83,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+
+
 
 
 @app.get("/favicon.ico")
@@ -94,6 +105,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user_data = await authenticate_user(form_data.username, form_data.password)
+
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    access_token = create_access_token(
+        data={
+            "sub": form_data.username,
+            "user_id": user_data["id"],
+            "full_name": user_data["full_name"],
+            "role": user_data["role"],
+        }
+    )
+    if not access_token:
+        raise HTTPException(status_code=500, detail="Could not create access token")
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/")
@@ -103,9 +136,69 @@ def read_root():
     """
     return HTMLResponse('<h1>print("Welcome to PyCon Togo\'s API")</h1>')
 
-# security = HTTPBasic()
 
-# costumize the documentation by adding a title and description
+
+@app.get("/api/registration/{id}")
+def api_registration(id: str, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to get a registration by UUID.
+
+    data schema:
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
+    """
+    print("Current User:", current_user)
+    registration = get_everything_where("registrations", "id", UUID(id))
+    print(UUID(id))
+    if registration:
+        return registration[0]
+    else:
+        return JSONResponse(content={"message": "No registration found."}, status_code=404)
+
+
+@app.put("/api/checkregistration/{id}")
+def api_check_registration(id: str, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to check a registration by UUID.
+
+    data schema:
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to check registrations")
+    
+    registration = get_everything_where("registrations", "id", UUID(id))
+    
+    if registration:
+        
+        if registration[0].get("checked", False):
+            return JSONResponse(content={"message": "Registration already checked."}, status_code=200)
+        else:
+           checked=  update_something("registrations", registration[0]["id"], {"checked": True})
+           if checked:
+                return JSONResponse(content={"message": "Registration checked successfully."}, status_code=200)
+           else:
+                return JSONResponse(content={"message": "Failed to check registration."}, status_code=400)
+      
+    else:
+        return JSONResponse(content={"message": "No registration found."}, status_code=404)
 
 
 @app.get("/api/sponsor-tiers")
@@ -162,7 +255,7 @@ def api_volunteer_inquiries(motivation: bool = None):
 
 # accepted volunteer inquiries
 @app.get("/api/volunteeraccepted")
-def api_volunteer_accepted():
+def api_volunteer_accepted(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all accepted volunteer inquiries.
 
@@ -184,11 +277,13 @@ def api_volunteer_accepted():
     - social: bool
     - photography: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
     return inquiries
 
 @app.get("/api/volunteerwaiting")
-def api_volunteer_accepted():
+def api_volunteer_waiting(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all accepted volunteer inquiries.
 
@@ -210,12 +305,14 @@ def api_volunteer_accepted():
     - social: bool
     - photography: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
     return inquiries
 
 
 @app.get("/api/volunteerrejected")
-def api_volunteer_accepted():
+def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all accepted volunteer inquiries.
 
@@ -237,12 +334,14 @@ def api_volunteer_accepted():
     - social: bool
     - photography: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
     return inquiries
     
 
 @app.get("/api/registrations")
-def api_registrations():
+def api_registrations(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all registrations.
 
@@ -257,11 +356,15 @@ def api_registrations():
     - newsletter: bool
     - codeofconduct: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view registrations")
     registrations = get_everything("registrations")
     return registrations
 
 @app.get("/api/sponsorinquiries")
-def api_sponsor_inquiries():
+def api_sponsor_inquiries(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all sponsor inquiries.
 
@@ -276,6 +379,10 @@ def api_sponsor_inquiries():
     - message: str
     - paid: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Sponsor-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view sponsor inquiries")
     inquiries = get_everything("sponsorinquiry")
     return inquiries
 
@@ -299,7 +406,7 @@ def api_sponsors_paid():
     return sponsors
 
 @app.get("/api/proposalsinquiries")
-def api_proposals():
+def api_proposals(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all proposals.
 
@@ -318,6 +425,10 @@ def api_proposals():
     - technical_needs: str
     - accepted: bool
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Proposal-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view proposals")
     proposals = get_everything("proposals")
     return proposals
 
@@ -345,13 +456,15 @@ def api_proposals_accepted():
     return accepted_proposals
 
 @app.get("/api/waitlist")
-def api_waitlist():
+def api_waitlist(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all waitlist inquiries.
 
     data schema:
     - email: str
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything("waitlist")
     return inquiries
 
@@ -378,133 +491,23 @@ def api_sponsors():
         return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
     return sponsors
 
-# update sponsor inquiry
-# @app.put("/api/sponsorinquiries/{id}")
-# def api_update_sponsor_inquiry(id: int, data: dict):
-#     """
-#     API endpoint to update a sponsor inquiry by ID.
-
-#     data schema:
-#     - company: str
-#     - email: str
-#     - website: str
-#     - contact: str
-#     - title: str
-#     - phone: str
-#     - level: str
-#     - message: str
-#     - paid: bool
-
-#     """
-#     updated = update_something("sponsorinquiry", id, data)
-#     if updated:
-#         return JSONResponse(content={"message": "Sponsor inquiry updated successfully."})
-#     else:
-#         return JSONResponse(content={"message": "Failed to update sponsor inquiry."}, status_code=400)
-
 
 @app.get("/api/volunteerinquiries/{id}")
-def api_get_volunteer_inquiry(id: int):
+def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_user)):
     """
     API endpoint to update a volunteer inquiry by ID.
     """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view volunteer inquiries")
     volunteer = get_everything_where("volunteerinquiry", "id", id)
     if volunteer:
         return volunteer
     else:
-        return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
+        return JSONResponse(content={"message": "Not found."}, status_code=404)
 
 
-# update volunteer inquiry
-# @app.put("/api/volunteerinquiries/{id}")
-# def api_update_volunteer_inquiry(id: int, data: dict):
-#     """
-#     API endpoint to update a volunteer inquiry by ID.
-#     """
-#     updated = update_something("volunteerinquiry", id, data)
-#     if updated:
-#         return JSONResponse(content={"message": "Volunteer inquiry updated successfully."})
-#     else:
-#         return JSONResponse(content={"message": "Failed to update volunteer inquiry."}, status_code=400)
-    
-# @app.put("/api/proposals/{id}")
-# def api_update_proposal(id: int, data: dict):
-#     """
-#     API endpoint to update a proposal by ID.
-
-#     data schema:
-#     - format: str
-#     - first_name: str
-#     - last_name: str
-#     - email: str
-#     - phone: str
-#     - title: str
-#     - level: str
-#     - talk_abstract: str
-#     - talk_outline: str
-#     - bio: str
-#     - needs: bool
-#     - technical_needs: str
-#     - accepted: bool
-#     """
-#     updated = update_something("proposals", id, data)
-#     if updated:
-#         return JSONResponse(content={"message": "Proposal updated successfully."})
-#     else:
-#         return JSONResponse(content={"message": "Failed to update proposal."}, status_code=400)
-
-# check registration
-# @app.put("/api/registrations/{id}")
-# def api_update_registration(id: int, data: dict):
-#     """
-#     API endpoint to update a registration by ID.
-
-#     data schema:
-#     - fullName: str
-#     - email: str
-#     - phone: str
-#     - organization: str
-#     - country: str
-#     - tshirtsize: str
-#     - dietaryrestrictions: str
-#     - newsletter: bool
-#     - codeofconduct: bool
-#     """
-#     updated = update_something("registrations", id, data)
-#     if updated:
-#         return JSONResponse(content={"message": "Registration updated successfully."})
-#     else:
-#         return JSONResponse(content={"message": "Failed to update registration."}, status_code=400)
-
-
-@app.get("/api/volunteer/{email}")
-def api_volunteer(email: str):
-    """
-    API endpoint to get a volunteer inquiry by email.
-
-    data schema:
-    - first_name: str
-    - last_name: str
-    - email: str
-    - phone: str
-    - country_city: str
-    - motivation: str
-    - availability_before: bool
-    - availability_during: bool
-    - availability_after: bool
-    - accepted: bool
-    - experience: str
-    - registration: bool
-    - technical: bool
-    - logistic: bool
-    - social: bool
-    - photography: bool
-    """
-    volunteer = get_everything_where("volunteerinquiry", "email", email)
-    if volunteer:
-        return volunteer
-    else:
-        return JSONResponse(content={"message": "No volunteer inquiry found."}, status_code=404)
 
 if __name__ == "__main__":
     import uvicorn
