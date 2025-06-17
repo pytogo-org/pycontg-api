@@ -427,7 +427,7 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Proposal-manager"]:
+    if current_user.get("role") not in ["Admin", "Program-manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to view proposals")
     proposals = get_everything("proposals")
     return proposals
