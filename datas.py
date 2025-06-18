@@ -107,7 +107,7 @@ def update_something(table, id, data):
     if response:
         return True
     else:
-        print(f"Failed to update data: {response.error}")
+        
         return False
 
 def get_everything(table):
@@ -117,7 +117,7 @@ def get_everything(table):
     response = supabase.table(table).select("*").execute()
     data = response.data
     if len(data) == 0:
-        return {"message": "No entries found"}
+        return False
     
     for entry in data:
         if "email" in entry:
@@ -133,7 +133,7 @@ def get_everything_where(table, field, value):
     response = supabase.table(table).select("*").eq(field, value).execute()
     data = response.data
     if len(data) == 0:
-        return {"message": "No entries found"}
+        return False
     for entry in data:
         if "email" in entry:
             entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
@@ -149,7 +149,7 @@ def get_something_where(table, field, value):
     response = supabase.table(table).select("*").eq(field, value).execute()
     data = response.data
     if len(data) == 0:
-        return {"message": "No entries found"}
+        return False
     if "email" in data[0]:
         data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", data[0]["email"])
     if "phone" in data[0]:
@@ -165,7 +165,7 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
     response = supabase.table(table).select("*").neq("motivation", "").execute()
     data = response.data
     if len(data) == 0:
-        return {"message": "No volunteer inquiries found with non-null motivation"}
+        return False
     for entry in data:
         if "email" in entry:
             entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
