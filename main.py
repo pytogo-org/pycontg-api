@@ -26,7 +26,7 @@ from utils import authenticate_user, create_access_token, get_current_user
 app = FastAPI(
     title="PyCon Togo API",
     description="API for PyCon Togo",
-    version="1.0.0",
+    version="1.1.0",
     contact={
         "name": "PyCon Togo",
         "url": "https://pycontg.pytogo.org/",
@@ -155,8 +155,12 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
     - codeofconduct: bool
     """
     print("Current User:", current_user)
-    registration = get_everything_where("registrations", "id", UUID(id))
-    print(registration)
+    
+    try:
+        uuid_obj = UUID(id, version=4)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    registration = get_everything_where("registrations", "id", str(uuid_obj))
     if registration:
         if not current_user:
             raise HTTPException(status_code=401, detail="Not authenticated")
@@ -189,7 +193,11 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
     if current_user.get("role") not in ["Admin", "Registration-manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to check registrations")
     
-    registration = get_everything_where("registrations", "id", UUID(id))
+    try:
+        uuid_obj = UUID(id, version=4)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    registration = get_everything_where("registrations", "id", str(uuid_obj))
     
     
     if registration:
