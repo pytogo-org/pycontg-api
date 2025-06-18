@@ -156,12 +156,17 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
     """
     print("Current User:", current_user)
     registration = get_everything_where("registrations", "id", UUID(id))
-    print(UUID(id))
+    print(registration)
     if registration:
-        return registration[0]
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        if current_user.get("role") not in ["Admin", "Registration-manager"]:
+            raise HTTPException(status_code=403, detail="Not authorized to view registrations")
+        
+        if registration:
+            return registration[0]
     else:
         return JSONResponse(content={"message": "No registration found."}, status_code=404)
-
 
 @app.put("/api/checkregistration/{id}")
 def api_check_registration(id: str, current_user: dict = Depends(get_current_user)):
@@ -185,6 +190,7 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
         raise HTTPException(status_code=403, detail="Not authorized to check registrations")
     
     registration = get_everything_where("registrations", "id", UUID(id))
+    
     
     if registration:
         
@@ -246,10 +252,15 @@ def api_volunteer_inquiries(motivation: bool = None):
             inquiries = get_volunteers_inquiries_where_motivation_is_not_null(
                 "volunteerinquiry"
             )
+            if not inquiries:
+                return JSONResponse(content={"message": "No volunteer inquiries with motivation found."}, status_code=404)
         elif motivation is False:
             inquiries = get_everything_where("volunteerinquiry", "motivation", "")
     else:
         inquiries = get_everything("volunteerinquiry")
+
+    if not inquiries:
+        return JSONResponse(content={"message": "No volunteer inquiries found."}, status_code=404)
     
     return inquiries
 
@@ -280,6 +291,11 @@ def api_volunteer_accepted(current_user: dict = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
+    if not inquiries:
+        return JSONResponse(content={"message": "No accepted volunteer inquiries found."}, status_code=404)
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view accepted volunteer inquiries")
+    
     return inquiries
 
 @app.get("/api/volunteerwaiting")
@@ -308,6 +324,8 @@ def api_volunteer_waiting(current_user: dict = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
+    if not inquiries:
+        return JSONResponse(content={"message": "No volunteer inquiries found."}, status_code=404)
     return inquiries
 
 
@@ -337,6 +355,10 @@ def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
+    if not inquiries:
+        return JSONResponse(content={"message": "No volunteer inquiries found."}, status_code=404)
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view rejected volunteer inquiries")
     return inquiries
     
 
@@ -361,6 +383,8 @@ def api_registrations(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") not in ["Admin", "Registration-manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to view registrations")
     registrations = get_everything("registrations")
+    if not registrations:
+        return JSONResponse(content={"message": "No registrations found."}, status_code=404)
     return registrations
 
 @app.get("/api/sponsorinquiries")
@@ -384,6 +408,8 @@ def api_sponsor_inquiries(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") not in ["Admin", "Sponsor-manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to view sponsor inquiries")
     inquiries = get_everything("sponsorinquiry")
+    if not inquiries:
+        return JSONResponse(content={"message": "No sponsor inquiries found."}, status_code=404)
     return inquiries
 
 @app.get("/api/sponsorspaid")
@@ -403,6 +429,8 @@ def api_sponsors_paid():
     - paid: bool
     """
     sponsors = get_everything_where("sponsorinquiry", "paid", True)
+    if not sponsors:
+        return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
     return sponsors
 
 @app.get("/api/proposalsinquiries")
@@ -427,9 +455,11 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Proposal-manager"]:
+    if current_user.get("role") not in ["Admin", "Program-manager"]:
         raise HTTPException(status_code=403, detail="Not authorized to view proposals")
     proposals = get_everything("proposals")
+    if not proposals:
+        return JSONResponse(content={"message": "No proposals found."}, status_code=404)
     return proposals
 
 @app.get("/api/proposals")
@@ -453,6 +483,8 @@ def api_proposals_accepted():
     - accepted: bool
     """
     accepted_proposals = get_everything_where("proposals", "accepted", True)
+    if not accepted_proposals:
+        return JSONResponse(content={"message": "No accepted proposals found."}, status_code=404)
     return accepted_proposals
 
 @app.get("/api/waitlist")
@@ -466,6 +498,8 @@ def api_waitlist(current_user: dict = Depends(get_current_user)):
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything("waitlist")
+    if not inquiries:
+        return JSONResponse(content={"message": "No waitlist inquiries found."}, status_code=404)
     return inquiries
 
 # get sponsors who has paid
@@ -506,7 +540,6 @@ def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_
         return volunteer
     else:
         return JSONResponse(content={"message": "Not found."}, status_code=404)
-
 
 
 if __name__ == "__main__":
