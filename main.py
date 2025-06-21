@@ -26,7 +26,7 @@ from models import CheckInUpdate
 app = FastAPI(
     title="PyCon Togo API",
     description="API for PyCon Togo",
-    version="1.0.0",
+    version="1.1.0",
     contact={
         "name": "PyCon Togo",
         "url": "https://pycontg.pytogo.org/",
@@ -160,6 +160,7 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
         if not current_user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         if current_user.get("role") not in ["Admin", "Registration-manager"]:
+
             raise HTTPException(
                 status_code=403, detail="Not authorized to view registrations"
             )
@@ -170,7 +171,6 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
         return JSONResponse(
             content={"message": "No registration found."}, status_code=404
         )
-
 
 @app.put("/api/checkregistration/{id}")
 def api_check_registration(id: str, current_user: dict = Depends(get_current_user)):
@@ -191,9 +191,11 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     if current_user.get("role") not in ["Admin", "Registration-manager"]:
+
         raise HTTPException(
             status_code=403, detail="Not authorized to check registrations"
         )
+
 
     try:
         uuid_obj = UUID(id, version=4)
@@ -360,21 +362,25 @@ def api_volunteer_inquiries(
                 "volunteerinquiry"
             )
             if not inquiries:
+
                 return JSONResponse(
                     content={
                         "message": "No volunteer inquiries with motivation found."
                     },
                     status_code=404,
                 )
+
         elif motivation is False:
             inquiries = get_everything_where("volunteerinquiry", "motivation", "")
     else:
         inquiries = get_everything("volunteerinquiry")
 
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
+
 
     return inquiries
 
@@ -407,6 +413,7 @@ def api_volunteer_accepted(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No accepted volunteer inquiries found."},
             status_code=404,
@@ -447,9 +454,11 @@ def api_volunteer_waiting(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
+
     return inquiries
 
 
@@ -480,6 +489,7 @@ def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
@@ -488,6 +498,7 @@ def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
             status_code=403,
             detail="Not authorized to view rejected volunteer inquiries",
         )
+
     return inquiries
 
 
@@ -515,9 +526,11 @@ def api_registrations(current_user: dict = Depends(get_current_user)):
         )
     registrations = get_everything("registrations")
     if not registrations:
+
         return JSONResponse(
             content={"message": "No registrations found."}, status_code=404
         )
+
     return registrations
 
 
@@ -545,9 +558,11 @@ def api_sponsor_inquiries(current_user: dict = Depends(get_current_user)):
         )
     inquiries = get_everything("sponsorinquiry")
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No sponsor inquiries found."}, status_code=404
         )
+
     return inquiries
 
 
@@ -625,9 +640,12 @@ def api_proposals_accepted():
     """
     accepted_proposals = get_everything_where("proposals", "accepted", True)
     if not accepted_proposals:
+
         return JSONResponse(
             content={"message": "No accepted proposals found."}, status_code=404
         )
+
+
     return accepted_proposals
 
 
@@ -643,6 +661,7 @@ def api_waitlist(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything("waitlist")
     if not inquiries:
+
         return JSONResponse(
             content={"message": "No waitlist inquiries found."}, status_code=404
         )
@@ -691,6 +710,7 @@ def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_
         return JSONResponse(content={"message": "Not found."}, status_code=404)
 
 
+
 connected_clients: typing.List[WebSocket] = []
 
 
@@ -709,6 +729,7 @@ async def websocket_checkin(websocket: WebSocket):
 
     except WebSocketDisconnect:
         connected_clients.remove(websocket)
+
 
 
 if __name__ == "__main__":
