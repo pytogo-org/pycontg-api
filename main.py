@@ -208,6 +208,7 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
             return JSONResponse(
                 content={"message": "Registration already checked."}, status_code=200
             )
+          
         else:
             checked = update_something(
                 "registrations", registration[0]["id"], {"checked": True}
@@ -223,10 +224,12 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
                     status_code=400,
                 )
 
+
     else:
         return JSONResponse(
             content={"message": "No registration found."}, status_code=404
         )
+
 
 
 @app.put("/api/{id}/checkin")
@@ -279,6 +282,7 @@ def api_check_in(
         return JSONResponse(
             content={"message": "No registration found."}, status_code=404
         )
+
 
 
 @app.get("/api/staff")
@@ -588,6 +592,7 @@ def api_sponsors_paid():
     return sponsors
 
 
+
 @app.get("/api/proposals")
 def api_proposals(current_user: dict = Depends(get_current_user)):
     """
@@ -616,6 +621,7 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     if not proposals:
         return JSONResponse(content={"message": "No proposals found."}, status_code=404)
     return proposals
+
 
 
 @app.get("/api/speakers")
