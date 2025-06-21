@@ -588,7 +588,7 @@ def api_sponsors_paid():
     return sponsors
 
 
-@app.get("/api/proposalsinquiries")
+@app.get("/api/proposals")
 def api_proposals(current_user: dict = Depends(get_current_user)):
     """
     API endpoint to get all proposals.
@@ -618,7 +618,7 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     return proposals
 
 
-@app.get("/api/proposals")
+@app.get("/api/speakers")
 def api_proposals_accepted():
     """
     API endpoint to get all accepted proposals.
