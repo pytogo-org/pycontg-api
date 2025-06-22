@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 import os
 
+import bcrypt
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
@@ -56,3 +57,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         }
     except Exception:
         raise credentials_exception
+
+def hash_password(password: str) -> str:
+    """
+    Hash a password using bcrypt.
+    """
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify a password against a hashed password.
+    """
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"), hashed_password.encode("utf-8")
+    )

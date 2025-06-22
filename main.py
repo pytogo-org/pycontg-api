@@ -1,3 +1,4 @@
+import os
 import typing
 
 if not hasattr(typing, "_ClassVar") and hasattr(typing, "ClassVar"):
@@ -7,7 +8,8 @@ if not hasattr(typing, "_ClassVar") and hasattr(typing, "ClassVar"):
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
-from uuid import UUID
+from uuid import UUID, uuid4
+from dotenv import load_dotenv
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
@@ -16,12 +18,19 @@ from datas import (
     get_sponsorteirs,
     get_everything,
     get_everything_where,
+    insert_something,
     update_something,
     get_volunteers_inquiries_where_motivation_is_not_null,
 )
-from utils import authenticate_user, create_access_token, get_current_user
-from models import CheckInUpdate
+from utils import (
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    hash_password,
+)
+from models import CheckInUpdate, RegistrationInquiry, StaffMobel
 
+load_dotenv()
 
 app = FastAPI(
     title="PyCon Togo API",
@@ -59,22 +68,10 @@ app = FastAPI(
     },
 )
 
-origins = [
-    "https://pytogo.org",
-    "https://www.pytogo.org",
-    "https://pycontg.pytogo.org",
-    "http://localhost",
-    "http://127.0.0.1:5500",
-    "http://127.0.0.1",
-    "http://127.0.0.1:5500",
-    "http://localhost:8000",
-    "http://localhost:5000",
-    "http://localhost:5500",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://127.0.0.1:8000",
-    "*",
-]
+origins = os.getenv("ALLOWED_ORIGINS ", "*")
+
+
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -139,6 +136,7 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
     API endpoint to get a registration by UUID.
 
     data schema:
+    - id: UUID
     - fullName: str
     - email: str
     - phone: str
@@ -160,7 +158,6 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
         if not current_user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         if current_user.get("role") not in ["Admin", "Registration-manager"]:
-
             raise HTTPException(
                 status_code=403, detail="Not authorized to view registrations"
             )
@@ -171,6 +168,7 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
         return JSONResponse(
             content={"message": "No registration found."}, status_code=404
         )
+
 
 @app.put("/api/checkregistration/{id}")
 def api_check_registration(id: str, current_user: dict = Depends(get_current_user)):
@@ -191,11 +189,9 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     if current_user.get("role") not in ["Admin", "Registration-manager"]:
-
         raise HTTPException(
             status_code=403, detail="Not authorized to check registrations"
         )
-
 
     try:
         uuid_obj = UUID(id, version=4)
@@ -366,7 +362,6 @@ def api_volunteer_inquiries(
                 "volunteerinquiry"
             )
             if not inquiries:
-
                 return JSONResponse(
                     content={
                         "message": "No volunteer inquiries with motivation found."
@@ -380,11 +375,9 @@ def api_volunteer_inquiries(
         inquiries = get_everything("volunteerinquiry")
 
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
-
 
     return inquiries
 
@@ -417,7 +410,6 @@ def api_volunteer_accepted(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No accepted volunteer inquiries found."},
             status_code=404,
@@ -458,7 +450,6 @@ def api_volunteer_waiting(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
@@ -493,7 +484,6 @@ def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No volunteer inquiries found."}, status_code=404
         )
@@ -530,7 +520,6 @@ def api_registrations(current_user: dict = Depends(get_current_user)):
         )
     registrations = get_everything("registrations")
     if not registrations:
-
         return JSONResponse(
             content={"message": "No registrations found."}, status_code=404
         )
@@ -562,7 +551,6 @@ def api_sponsor_inquiries(current_user: dict = Depends(get_current_user)):
         )
     inquiries = get_everything("sponsorinquiry")
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No sponsor inquiries found."}, status_code=404
         )
@@ -590,7 +578,6 @@ def api_sponsors_paid():
     if not sponsors:
         return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
     return sponsors
-
 
 
 @app.get("/api/proposals")
@@ -623,7 +610,6 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     return proposals
 
 
-
 @app.get("/api/speakers")
 def api_proposals_accepted():
     """
@@ -646,11 +632,9 @@ def api_proposals_accepted():
     """
     accepted_proposals = get_everything_where("proposals", "accepted", True)
     if not accepted_proposals:
-
         return JSONResponse(
             content={"message": "No accepted proposals found."}, status_code=404
         )
-
 
     return accepted_proposals
 
@@ -667,7 +651,6 @@ def api_waitlist(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     inquiries = get_everything("waitlist")
     if not inquiries:
-
         return JSONResponse(
             content={"message": "No waitlist inquiries found."}, status_code=404
         )
@@ -716,6 +699,110 @@ def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_
         return JSONResponse(content={"message": "Not found."}, status_code=404)
 
 
+@app.post("/api/staff")
+def api_add_staff(staff: StaffMobel, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to add a new staff member.
+
+    data schema:
+    - fullname: str
+    - email: str
+    - password: str
+    - role: str
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") != "Admin":
+        raise HTTPException(status_code=403, detail="Not authorized to add staff")
+
+    staff_existing = get_everything_where("staff", "email", staff.email)
+    if staff_existing:
+        raise HTTPException(
+            status_code=400, detail="Staff member with this email already exists"
+        )
+    hash_pass = hash_password(staff.password)
+
+    added = insert_something(
+        "staff",
+        {
+            "fullname": staff.fullname,
+            "email": staff.email,
+            "password": hash_pass,
+            "role": staff.role,
+        },
+    )
+    if not added:
+        raise HTTPException(status_code=500, detail="Failed to add staff member")
+    return JSONResponse(
+        content={"message": "Staff member added successfully."}, status_code=201
+    )
+
+
+@app.post("/api/registrations")
+def api_register_attendee(
+    registration: RegistrationInquiry, current_user: dict = Depends(get_current_user)
+):
+    """
+    API endpoint to register an attendee.
+
+    data schema:
+    - id: UUID
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
+    """
+    
+    # genrate a UUID for the registration
+    _id = str(uuid4())
+    print("Generated ID:", _id)
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to register attendees"
+        )
+    
+
+    existing_registration = get_everything_where(
+        "registrations", "email", registration.email
+    )
+
+    if existing_registration:
+        raise HTTPException(
+            status_code=400, detail="An attendee with this email already exists"
+        )
+
+    registration_data = {
+        "id": _id,
+        "fullName": registration.fullName,
+        "email": registration.email,
+        "phone": registration.phone,
+        "organization": registration.organization,
+        "country": registration.country,
+        "tshirtsize": registration.tshirtsize,
+        "dietaryrestrictions": registration.dietaryrestrictions,
+        "newsletter": registration.newsletter,
+        "codeofconduct": registration.codeofconduct,
+        "checked": registration.checked,
+    }
+
+    added = insert_something("registrations", registration_data)
+
+    if not added:
+        raise HTTPException(status_code=500, detail="Failed to register attendee")
+
+    return JSONResponse(
+        content={"message": "Attendee registered successfully.", "id": registration.id},
+        status_code=201,
+    )
+
 
 connected_clients: typing.List[WebSocket] = []
 
@@ -735,7 +822,6 @@ async def websocket_checkin(websocket: WebSocket):
 
     except WebSocketDisconnect:
         connected_clients.remove(websocket)
-
 
 
 if __name__ == "__main__":

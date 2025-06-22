@@ -98,7 +98,6 @@ def insert_something(table, data):
         print(f"Failed to insert data: {response.error}")
         return False
 
-
 def update_something(table, id, data):
     """
     Update an existing entry in a specified table by its ID.
