@@ -42,7 +42,7 @@ load_dotenv()
 app = FastAPI(
     title="PyCon Togo API",
     description="API for PyCon Togo",
-    version="1.1.0",
+    version="1.1.1",
     contact={
         "name": "PyCon Togo",
         "url": "https://pycontg.pytogo.org/",
