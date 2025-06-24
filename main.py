@@ -15,6 +15,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 
 from datas import (
+    delete_something,
+    get_everything_where_multiple_fields,
     get_sponsorteirs,
     get_everything,
     get_everything_where,
@@ -28,7 +30,12 @@ from utils import (
     get_current_user,
     hash_password,
 )
-from models import CheckInUpdate, RegistrationInquiry, StaffMobel
+from models import (
+    CheckInUpdate,
+    RegistrationInquiry,
+    StaffMobel,
+    ProposalReviewModdel,
+)
 
 load_dotenv()
 
@@ -92,13 +99,7 @@ def favicon():
     )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -380,6 +381,70 @@ def api_volunteer_inquiries(
         )
 
     return inquiries
+
+
+@app.post("/api/review/{id}")
+def review_proposal(id: int, proposal: ProposalReviewModdel, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to review proposal
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if (
+        current_user.get("role") != "Admin"
+        and current_user.get("role") != "Program-manager"
+    ):
+        raise HTTPException(status_code=403, detail="Not authorized to review")
+    if current_user.get("user_id") != proposal.reviewer_id and current_user.get("full_name") != proposal.reviewer:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to review this proposal"
+        )
+    
+    if (id != proposal.proposal_id):
+        raise HTTPException(
+            status_code=400, detail="Proposal ID in URL does not match proposal ID in body"
+        )
+    exist = get_everything_where_multiple_fields(
+        "proposalreviews", proposal_id=proposal.proposal_id, reviewer_id=proposal.reviewer_id
+    )
+    if exist:
+        raise HTTPException(
+            status_code=400, detail="Proposal already reviewed by this reviewer"
+        )
+    reviewed = insert_something("proposalreviews", proposal.dict())
+    if not reviewed:
+        raise HTTPException(status_code=500, detail="Failed to review the proposal")
+
+    return JSONResponse(
+        content={"message": "Proposal reviewed successfully."},
+        status_code=201,
+    )
+    
+@app.delete("/api/{itemType}/{itemId}")
+def api_delete(itemType, itemId, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to delete a staff member by ID.
+    """
+    if itemType == "registrations":
+        id = UUID(itemId, version=4)
+    else:
+        id = int(itemId)
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") != "Admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete staff")
+
+    deleted = delete_something(itemType,id)
+    if deleted:
+        return JSONResponse(
+            content={"message": f"{itemType} member deleted successfully."},
+            status_code=200,
+        )
+    else:
+        return JSONResponse(
+            content={"message": "Failed to delete {itemType} member."}, status_code=400
+        )
 
 
 # accepted volunteer inquiries

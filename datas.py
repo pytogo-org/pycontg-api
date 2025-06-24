@@ -204,7 +204,44 @@ def auth_user(email: str, password: str):
 
     return user_data
 
+# get everything in table multiple fields
+def get_everything_where_multiple_fields(table, **kwargs):
+    """
+    Get everything in a particular table where multiple fields match their respective values.
+    """
+    query = supabase.table(table).select("*")
+    for field, value in kwargs.items():
+        query = query.eq(field, value)
+    
+    response = query.execute()
+    data = response.data
+    if len(data) == 0:
+        return False
+    
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+    
+    return data
+
+def delete_something(table, id):
+    """
+    Delete an entry from a specified table by its ID.
+    """
+    response = supabase.table(table).delete().eq("id", id).execute()
+    if response:
+        return True
+    else:
+        return False
+
 
 if __name__ == "__main__":
-    vol = get_volunteers_inquiries_where_motivation_is_not_null()
-    print(vol)
+    data = get_everything_where_multiple_fields(
+        "proposalreviews", proposal_id=5, reviewer_id=24
+    )
+    if data:
+        print(data)
+    else:
+        print("No data found or an error occurred.")

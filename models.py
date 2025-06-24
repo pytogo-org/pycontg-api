@@ -56,3 +56,20 @@ class RegistrationInquiry(BaseModel):
     checked: bool = Field(
         False, title="Checked", description="Whether the registration is checked"
     )
+
+
+class DeleteModel(BaseModel):
+    id: int = Field(
+        ..., title="ID", description="Unique identifier for the entry to be deleted"
+    )
+    table: str = Field(
+        ..., title="Table", description="Name of the table from which to delete the entry"
+    )
+
+
+class ProposalReviewModdel(BaseModel):
+    reviewer_id: int = Field(..., title="REVIEWER_ID")
+    reviewer: str = Field(..., title="Reviewer Fullname")
+    proposal_id: int = Field(..., title="Proposal ID")
+    rate: int = Field(..., title="Rate")
+    comment: str = Field(..., title="Comment")
