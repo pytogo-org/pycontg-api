@@ -6,6 +6,8 @@ import re
 
 
 
+
+
 def get_sponsorteirs():
     """
     Fetch all sponsor tiers from the database.
@@ -129,7 +131,13 @@ def get_everything_where(table, field, value):
     """
     Get everything in a particular table where a specific field matches a value
     """
-    response = supabase.table(table).select("*").eq(field, value).execute()
+    response = (
+            supabase.table(table)
+            .select("*")
+            .order("created_at", desc=False)
+            .eq(field, value)
+            .execute()
+    )
     data = response.data
     if len(data) == 0:
         return False

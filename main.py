@@ -29,6 +29,7 @@ from utils import (
     create_access_token,
     get_current_user,
     hash_password,
+    _sorted
 )
 from models import (
     CheckInUpdate,
@@ -88,6 +89,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SPONSOR_ORDER = {
+    "headline": 1,
+    "gold": 2,
+    "silver": 3,
+    "bronze": 4,
+    "costum": 5,
+    "educational": 6,
+    "media": 7
+}
+SPEAKER_ORDER = {
+    "Serge": 1,
+}
 
 @app.get("/favicon.ico")
 def favicon():
@@ -700,31 +713,10 @@ def api_proposals_accepted():
         return JSONResponse(
             content={"message": "No accepted proposals found."}, status_code=404
         )
-
-    return accepted_proposals
+    sorted_proposals = _sorted(accepted_proposals, SPEAKER_ORDER,"first_name")
+    return sorted_proposals
 
 @app.get("/api/propreviews")
-def api_proposal_reviews(current_user: dict = Depends(get_current_user)):
-    """
-    API endpoint to get all proposal reviews.
-
-    data schema:
-    - proposal_id: int
-    - reviewer_id: int
-    - reviewer: str
-    - rating: int
-    - comment: str
-    """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin"]:
-        raise HTTPException(status_code=403, detail="Not authorized to view proposal reviews")
-    
-    reviews = get_everything("proposalreviews")
-    if not reviews:
-        return JSONResponse(content={"message": "No proposal reviews found."}, status_code=404)
-    
-    return reviews
 
 
 @app.get("/api/waitlist")
@@ -766,7 +758,12 @@ def api_sponsors():
     sponsors = get_everything_where("sponsorinquiry", "paid", True)
     if not sponsors:
         return JSONResponse(content={"message": "No sponsors found."}, status_code=404)
-    return sponsors
+    sponsors_sorted = _sorted(
+            sponsors,
+            SPONSOR_ORDER,
+            "level"
+        )
+    return sponsors_sorted
 
 
 @app.get("/api/volunteerinquiries/{id}")
