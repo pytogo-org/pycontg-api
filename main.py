@@ -717,6 +717,28 @@ def api_proposals_accepted():
     return sorted_proposals
 
 @app.get("/api/propreviews")
+def api_proposal_reviews(current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to get all proposal reviews.
+
+    data schema:
+    - proposal_id: int
+    - reviewer_id: int
+    - reviewer: str
+    - rating: int
+    - comment: str
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view proposal reviews")
+    
+    reviews = get_everything("proposalreviews")
+    if not reviews:
+        return JSONResponse(content={"message": "No proposal reviews found."}, status_code=404)
+    
+    return reviews
+
 
 
 @app.get("/api/waitlist")
