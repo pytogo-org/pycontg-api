@@ -244,7 +244,7 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
 
 @app.put("/api/{id}/checkin")
 def api_check_in(
-    id: str, checked: CheckInUpdate, current_user: dict = Depends(get_current_user)
+    id: str, current_user: dict = Depends(get_current_user)
 ):
     """
     API endpoint to check a registration by UUID.
@@ -274,19 +274,24 @@ def api_check_in(
     registration = get_everything_where("registrations", "id", str(uuid_obj))
 
     if registration:
-        checked = update_something(
-            "registrations", registration[0]["id"], {"checked": checked.isChecked}
-        )
-        if checked:
+        if registration[0].get("checked", False):
             return JSONResponse(
-                content={"message": "Registration checked successfully."},
-                status_code=200,
+                content={"message": "Registration already checked."}, status_code=200
             )
         else:
-            raise JSONResponse(
-                content={"message": "Failed to check registration."},
-                status_code=400,
+            checked = update_something(
+                "registrations", registration[0]["id"], {"checked": True}
             )
+            if checked:
+                return JSONResponse(
+                    content={"message": "Registration checked successfully."},
+                    status_code=200,
+                )
+            else:
+                raise JSONResponse(
+                    content={"message": "Failed to check registration."},
+                    status_code=400,
+                )
 
     else:
         return JSONResponse(
