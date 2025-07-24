@@ -17,6 +17,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datas import (
     delete_something,
     get_everything_where_multiple_fields,
+    get_something_where_two_fields,
     get_sponsorteirs,
     get_everything,
     get_everything_where,
@@ -114,7 +115,7 @@ def favicon():
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+STAFF_SECRET_KEY = os.getenv("STAFF_SECRET_KEY")
 
 @app.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -161,8 +162,17 @@ def api_registration(id: str, current_user: dict = Depends(get_current_user)):
     - newsletter: bool
     - codeofconduct: bool
     """
-    print("Current User:", current_user)
-
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Registration-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view registrations"
+        )
     try:
         uuid_obj = UUID(id, version=4)
     except ValueError:
@@ -202,7 +212,13 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("role") not in ["Admin", "Registration-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to check registrations"
         )
@@ -242,7 +258,7 @@ def api_check_registration(id: str, current_user: dict = Depends(get_current_use
 
 
 
-@app.put("/api/{id}/checkin")
+@app.put("/api/checkin/{id}")
 def api_check_in(
     id: str, current_user: dict = Depends(get_current_user)
 ):
@@ -260,12 +276,24 @@ def api_check_in(
     - newsletter: bool
     - codeofconduct: bool
     """
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated or not a staff member")
+    
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to check registrations"
+        )
     if current_user.get("role") not in ["Admin", "Registration-manager"]:
         raise HTTPException(
             status_code=403, detail="Not authorized to check registrations"
         )
+    # check if the user is in the database
 
     try:
         uuid_obj = UUID(id, version=4)
@@ -314,7 +342,13 @@ def get_staff(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin"]:
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("role") not in ["Admin"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(status_code=403, detail="Not authorized to view staff")
 
     staff_members = get_everything("staff")
@@ -371,7 +405,14 @@ def api_volunteer_inquiries(
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Volunteer-manager"]:
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to view volunteer inquiries"
         )
@@ -408,10 +449,15 @@ def review_proposal(id: int, proposal: ProposalReviewModdel, current_user: dict 
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if (
-        current_user.get("role") != "Admin"
-        and current_user.get("role") != "Program-manager"
-    ):
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not proposal.reviewer_id:
+        raise HTTPException(status_code=400, detail="Reviewer ID is required")
+    if current_user.get("role") not in ["Admin", "Program-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(status_code=403, detail="Not authorized to review")
     if current_user.get("user_id") != proposal.reviewer_id and current_user.get("full_name") != proposal.reviewer:
         raise HTTPException(
@@ -443,6 +489,7 @@ def api_delete(itemType, itemId, current_user: dict = Depends(get_current_user))
     """
     API endpoint to delete a staff member by ID.
     """
+
     if itemType == "registrations":
         id = UUID(itemId, version=4)
     else:
@@ -450,7 +497,12 @@ def api_delete(itemType, itemId, current_user: dict = Depends(get_current_user))
 
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") != "Admin":
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") != "Admin" and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(status_code=403, detail="Not authorized to delete staff")
 
     deleted = delete_something(itemType,id)
@@ -491,6 +543,15 @@ def api_volunteer_accepted(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view accepted volunteer inquiries"
+        )
     inquiries = get_everything_where("volunteerinquiry", "status", "accepted")
     if not inquiries:
         return JSONResponse(
@@ -531,6 +592,15 @@ def api_volunteer_waiting(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view waiting volunteer inquiries"
+        )
     inquiries = get_everything_where("volunteerinquiry", "status", "waiting")
     if not inquiries:
         return JSONResponse(
@@ -565,6 +635,15 @@ def api_volunteer_rejected(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view rejected volunteer inquiries"
+        )
     inquiries = get_everything_where("volunteerinquiry", "status", "rejected")
     if not inquiries:
         return JSONResponse(
@@ -597,7 +676,13 @@ def api_registrations(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Registration-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to view registrations"
         )
@@ -628,7 +713,15 @@ def api_sponsor_inquiries(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Sponsors-manager"]:
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Sponsors-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to view sponsor inquiries"
         )
@@ -685,7 +778,15 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Program-manager"]:
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+    if current_user.get("role") not in ["Admin", "Program-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(status_code=403, detail="Not authorized to view proposals")
     proposals = get_everything("proposals")
     if not proposals:
@@ -800,7 +901,13 @@ def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") not in ["Admin", "Volunteer-manager"]:
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Volunteer-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to view volunteer inquiries"
         )
@@ -824,7 +931,13 @@ def api_add_staff(staff: StaffMobel, current_user: dict = Depends(get_current_us
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    if current_user.get("role") != "Admin":
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") != "Admin" and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(status_code=403, detail="Not authorized to add staff")
 
     staff_existing = get_everything_where("staff", "email", staff.email)
@@ -876,7 +989,12 @@ def api_register_attendee(
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Registration-manager"] and current_user.get("full_name") != staff[0].get("fullname"):
         raise HTTPException(
             status_code=403, detail="Not authorized to register attendees"
         )

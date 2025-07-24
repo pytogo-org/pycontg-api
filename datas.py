@@ -165,6 +165,30 @@ def get_something_where(table, field, value):
         return {"message": "Multiple entries found, please refine your query"}
     return data[0]
 
+def get_something_where_two_fields(table, field1, value1, field2, value2):
+    """
+    Get everything in a particular table where two specific fields match their respective values
+    """
+    
+    response = (
+        supabase.table(table)
+        .select("fullname", "email",  "role")
+        .eq(field1, value1)
+        .eq(field2, value2)
+        .execute()
+    )
+    data = response.data
+    if len(data) == 0:
+        return False
+    
+    for entry in data:
+        if "email" in entry:
+            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+        if "phone" in entry:
+            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+    
+    return data
+
 def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
     """
     Get all volunteer inquiries where motivation is not null
