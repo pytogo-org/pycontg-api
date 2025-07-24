@@ -1,10 +1,15 @@
 import bcrypt
 from fastapi import HTTPException
 from config import supabase
-import re
 
 
 
+
+
+def mask_fixed_ends(value: str, stars: int = 3, keep_start: int = 2, keep_end: int = 1) -> str:
+    if len(value) <= keep_start + keep_end:
+        return '*' * stars
+    return value[:keep_start] + '*' * stars + value[-keep_end:]
 
 
 
@@ -51,10 +56,10 @@ def get_something_email(table, email):
         print(f"No entry found with email: {email}")
         return None
     
-    data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", email)
+    data[0]["email"] = mask_fixed_ends(data[0]["email"])
     
     if "phone" in data[0]:
-        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
+        data[0]["phone"] = mask_fixed_ends(data[0]["phone"])
     return data[0]
 
 def get_something_by_field(table, field, value):
@@ -68,9 +73,9 @@ def get_something_by_field(table, field, value):
         return None
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+            entry["phone"] = mask_fixed_ends(entry["phone"])
     return data
 
 def get_something_by_email_firstname_lastname(table, email, firstname, lastname):
@@ -82,9 +87,9 @@ def get_something_by_email_firstname_lastname(table, email, firstname, lastname)
     if len(data) == 0:
         print(f"No entry found with email: {email}, firstname: {firstname}, lastname: {lastname}")
         return None
-    data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", data[0]["email"])
+    data[0]["email"] = mask_fixed_ends(data[0]["email"])
     if "phone" in data[0]:
-        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
+        data[0]["phone"] = mask_fixed_ends(data[0]["phone"])
     return data[0]
 
 
@@ -122,9 +127,9 @@ def get_everything(table):
     
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+            entry["phone"] = mask_fixed_ends(entry["phone"])
     return data
 
 def get_everything_where(table, field, value):
@@ -143,10 +148,10 @@ def get_everything_where(table, field, value):
         return False
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
-    
+            entry["phone"] = mask_fixed_ends(entry["phone"])
+
     return data
 
 def get_something_where(table, field, value):
@@ -158,9 +163,9 @@ def get_something_where(table, field, value):
     if len(data) == 0:
         return False
     if "email" in data[0]:
-        data[0]["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", data[0]["email"])
+        data[0]["email"] = mask_fixed_ends(data[0]["email"])
     if "phone" in data[0]:
-        data[0]["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", data[0]["phone"])
+        data[0]["phone"] = mask_fixed_ends(data[0]["phone"])
     if len(data) > 1:
         return {"message": "Multiple entries found, please refine your query"}
     return data[0]
@@ -183,10 +188,10 @@ def get_something_where_two_fields(table, field1, value1, field2, value2):
     
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
-    
+            entry["phone"] = mask_fixed_ends(entry["phone"])
+
     return data
 
 def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquiry"):
@@ -199,9 +204,9 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
         return False
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
+            entry["phone"] = mask_fixed_ends(entry["phone"])
     return data
 
 def auth_user(email: str, password: str):
@@ -252,10 +257,10 @@ def get_everything_where_multiple_fields(table, **kwargs):
     
     for entry in data:
         if "email" in entry:
-            entry["email"] = re.sub(r"(?<=.{2}).(?=.*)", "*", entry["email"])
+            entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
-            entry["phone"] = re.sub(r"(?<=.{2}).(?=.*\d)", "*", entry["phone"])
-    
+            entry["phone"] = mask_fixed_ends(entry["phone"])
+
     return data
 
 def delete_something(table, id):
