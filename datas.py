@@ -76,6 +76,10 @@ def get_something_by_field(table, field, value):
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
     return data
 
 def get_something_by_email_firstname_lastname(table, email, firstname, lastname):
@@ -130,6 +134,10 @@ def get_everything(table):
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
     return data
 
 def get_everything_where(table, field, value):
@@ -151,6 +159,10 @@ def get_everything_where(table, field, value):
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
 
     return data
 
@@ -191,6 +203,10 @@ def get_something_where_two_fields(table, field1, value1, field2, value2):
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
 
     return data
 
@@ -207,6 +223,10 @@ def get_volunteers_inquiries_where_motivation_is_not_null(table="volunteerinquir
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
     return data
 
 def auth_user(email: str, password: str):
@@ -260,6 +280,10 @@ def get_everything_where_multiple_fields(table, **kwargs):
             entry["email"] = mask_fixed_ends(entry["email"])
         if "phone" in entry:
             entry["phone"] = mask_fixed_ends(entry["phone"])
+        if "staff_secret_key" in entry:
+            entry["staff_secret_key"] = "*******************"
+        if "password" in entry:
+            entry["password"] = "******************"
 
     return data
 

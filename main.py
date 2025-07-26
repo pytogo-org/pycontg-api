@@ -293,7 +293,6 @@ def api_check_in(
         raise HTTPException(
             status_code=403, detail="Not authorized to check registrations"
         )
-    # check if the user is in the database
 
     try:
         uuid_obj = UUID(id, version=4)
