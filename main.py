@@ -325,7 +325,61 @@ def api_check_in(
             content={"message": "No registration found."}, status_code=404
         )
 
+@app.put("/api/registrations/{id}/checkin")
+def api_check_in_update(
+    id: str, check_in_update: CheckInUpdate, current_user: dict = Depends(get_current_user)
+):
+    """
+    API endpoint to update check-in status of a registration by UUID.
 
+    data schema:
+    - isChecked: bool
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated or not a staff member")
+    
+    if current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update check-in status"
+        )
+    
+    if current_user.get("role") not in ["Admin", "Registration-manager"]:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to update check-in status"
+        )
+
+    try:
+        uuid_obj = UUID(id, version=4)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    
+    registration = get_everything_where("registrations", "id", str(uuid_obj))
+
+    if registration:
+        updated = update_something(
+            "registrations", registration[0]["id"], {"checked": check_in_update.isChecked}
+        )
+        if updated:
+            return JSONResponse(
+                content={"message": "Check-in status updated successfully."},
+                status_code=200,
+            )
+        else:
+            raise JSONResponse(
+                content={"message": "Failed to update check-in status."},
+                status_code=400,
+            )
+    
+    else:
+        return JSONResponse(
+            content={"message": "No registration found."}, status_code=404
+        )
 
 @app.get("/api/staff")
 def get_staff(current_user: dict = Depends(get_current_user)):
@@ -835,6 +889,13 @@ def api_proposal_reviews(current_user: dict = Depends(get_current_user)):
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if current_user.get("role") not in ["Admin", "Program-manager"] or current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(status_code=403, detail="Not authorized to view proposals")
     if current_user.get("role") not in ["Admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to view proposal reviews")
     
