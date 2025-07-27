@@ -101,8 +101,14 @@ SPONSOR_ORDER = {
 }
 SPEAKER_ORDER = {
     "Serge": 1,
+    "Zokora": 2,
 }
-
+PROPOSAL_RATE = {
+    4: 1,
+    3: 2,
+    2: 3,
+    1: 4,
+}
 @app.get("/favicon.ico")
 def favicon():
     """
@@ -846,6 +852,44 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
         return JSONResponse(content={"message": "No proposals found."}, status_code=404)
     return proposals
 
+@app.get("/api/proposalsreconsideration")
+def api_proposals_reconsideration(current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to get all proposals under reconsideration.
+
+    data schema:
+    - format: str
+    - first_name: str
+    - last_name: str
+    - email: str
+    - phone: str
+    - title: str
+    - level: str
+    - talk_abstract: str
+    - talk_outline: str
+    - bio: str
+    - needs: bool
+    - technical_needs: str
+    - accepted: bool
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    if current_user.get("role") not in ["Admin", "Program-manager"] or current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(status_code=403, detail="Not authorized to view proposals")
+    proposals = get_everything("temp_speakers")
+    sorted_proposals = _sorted(proposals, SPEAKER_ORDER, "rate")
+    if not proposals:
+        return JSONResponse(content={"message": "No proposals found."}, status_code=404)
+    
+    print("Sorted proposals:", sorted_proposals)
+    return sorted_proposals 
 
 @app.get("/api/speakers")
 def api_proposals_accepted():
