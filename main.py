@@ -101,7 +101,7 @@ SPONSOR_ORDER = {
 }
 SPEAKER_ORDER = {
     "Serge": 1,
-    "Zokora": 2,
+    "Zokora Elvis": 2,
 }
 PROPOSAL_RATE = {
     4: 1,
@@ -851,6 +851,66 @@ def api_proposals(current_user: dict = Depends(get_current_user)):
     if not proposals:
         return JSONResponse(content={"message": "No proposals found."}, status_code=404)
     return proposals
+
+@app.put("/api/proposals/{id}/accept")
+def api_accept_proposal(id: int, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to accept a proposal by ID.
+
+    data schema:
+    - accepted: bool
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("role") not in ["Admin"] or current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(status_code=403, detail="Not authorized to accept proposals")
+    
+    proposal = get_everything_where("proposals", "id", id)
+    if not proposal:
+        return JSONResponse(content={"message": "Proposal not found."}, status_code=404)
+    
+    updated = update_something("proposals", id, {"accepted": True, "status": "accepted"})
+    if updated:
+        return JSONResponse(content={"message": "Proposal accepted successfully."}, status_code=200)
+    
+    return JSONResponse(content={"message": "Failed to accept proposal."}, status_code=400)
+
+@app.put("/api/proposals/{id}/reject")
+def api_reject_proposal(id: int, current_user: dict = Depends(get_current_user)):
+    """
+    API endpoint to reject a proposal by ID.
+    data schema:
+    - accepted: bool
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("role") not in ["Admin"] or current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(status_code=403, detail="Not authorized to reject proposals")
+    
+    proposal = get_everything_where("proposals", "id", id)
+    if not proposal:
+        return JSONResponse(content={"message": "Proposal not found."}, status_code=404)
+    
+    updated = update_something("proposals", id, {"accepted": False, "status": "rejected"})
+    if updated:
+        return JSONResponse(content={"message": "Proposal rejected successfully."}, status_code=200)
+    
+    return JSONResponse(content={"message": "Failed to reject proposal."}, status_code=400)
+
 
 @app.get("/api/proposalsreconsideration")
 def api_proposals_reconsideration(current_user: dict = Depends(get_current_user)):
