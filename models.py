@@ -1,10 +1,12 @@
+from typing import Optional
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
+from fastapi import UploadFile, File
 
 class CheckInUpdate(BaseModel):
     isChecked: bool
 
-class StaffMobel(BaseModel):
+class StaffModel(BaseModel):
     fullname: str
     email: str
     password: str
@@ -67,9 +69,27 @@ class DeleteModel(BaseModel):
     )
 
 
-class ProposalReviewModdel(BaseModel):
+class ProposalReviewModel(BaseModel):
     reviewer_id: int = Field(..., title="REVIEWER_ID")
     reviewer: str = Field(..., title="Reviewer Fullname")
     proposal_id: int = Field(..., title="Proposal ID")
     rate: int = Field(..., title="Rate")
     comment: str = Field(..., title="Comment")
+
+
+
+class UpdateSpeakerModel(BaseModel):
+    fullname: Optional[str] = None
+    bio: Optional[str] = None
+    short_bio: Optional[str] = None
+    title: Optional[str] = None
+    talk_abstract: Optional[str] = None
+    company: Optional[str] = None
+    country: Optional[str] = None
+    social_link: Optional[str] = None
+    social_platform: Optional[str] = None
+    photo_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    format: Optional[str] = None
+    level: Optional[str] = None
+    status: Optional[str] = None

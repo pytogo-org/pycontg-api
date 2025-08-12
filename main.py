@@ -1,6 +1,8 @@
 import os
 import typing
 
+from utils.send_tickets import send_ticket_email
+
 if not hasattr(typing, "_ClassVar") and hasattr(typing, "ClassVar"):
     typing._ClassVar = typing.ClassVar
 
@@ -25,7 +27,7 @@ from datas import (
     update_something,
     get_volunteers_inquiries_where_motivation_is_not_null,
 )
-from utils import (
+from utils.auths import (
     authenticate_user,
     create_access_token,
     get_current_user,
@@ -35,8 +37,9 @@ from utils import (
 from models import (
     CheckInUpdate,
     RegistrationInquiry,
-    StaffMobel,
-    ProposalReviewModdel,
+    StaffModel,
+    ProposalReviewModel,
+    UpdateSpeakerModel,
 )
 
 load_dotenv()
@@ -44,15 +47,15 @@ load_dotenv()
 app = FastAPI(
     title="PyCon Togo API",
     description="API for PyCon Togo",
-    version="1.1.2",
+    version="1.1.3",
     contact={
         "name": "PyCon Togo",
         "url": "https://pycontg.pytogo.org/",
         "email": "contact@pytogo.org",
     },
     license_info={
-        "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
+        "name": "Apache 2.0 License",
+        "url": "https://opensource.org/licenses/Apache-2.0",
     },
     openapi_tags=[
         {
@@ -101,7 +104,10 @@ SPONSOR_ORDER = {
 }
 SPEAKER_ORDER = {
     "Serge": 1,
-    "Zokora Elvis": 2,
+    "Ibi": 2,
+    "Zokora Elvis": 3,
+    "Jacobs": 4,
+    "Basile": 8,   
 }
 PROPOSAL_RATE = {
     4: 1,
@@ -330,6 +336,75 @@ def api_check_in(
         return JSONResponse(
             content={"message": "No registration found."}, status_code=404
         )
+    
+
+
+@app.put("/api/foodcheck/{id}")
+def api_food_check(
+    id: str, current_user: dict = Depends(get_current_user)
+):
+    """API endpoint to check food status of a registration by UUID.
+
+    data schema:
+    - fullName: str
+    - email: str
+    - phone: str
+    - organization: str
+    - country: str
+    - tshirtsize: str
+    - dietaryrestrictions: str
+    - newsletter: bool
+    - codeofconduct: bool
+    """
+    staff = get_something_where_two_fields(
+        "staff", "email", current_user.get("email"), "staff_secret_key", STAFF_SECRET_KEY
+    )
+    if not staff:
+        raise HTTPException(status_code=401, detail="Not authenticated or not a staff member")
+    
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if current_user.get("full_name") != staff[0].get("fullname"):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to check registrations"
+        )
+    #if current_user.get("role") not in ["Admin", "Registration-manager"]:
+        #raise HTTPException(
+        #    status_code=403, detail="Not authorized to check registrations"
+        #)
+
+    try:
+        uuid_obj = UUID(id, version=4)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+    registration = get_everything_where("registrations", "id", str(uuid_obj))
+
+    if registration:
+        if registration[0].get("foodchecked", False):
+            return JSONResponse(
+                content={"message": "NO: This Attendee has already taken."}, status_code=200
+            )
+        else:
+            checked = update_something(
+                "registrations", registration[0]["id"], {"foodchecked": True}
+            )
+            if checked:
+                return JSONResponse(
+                    content={"message": "YES: This Attendee can take food."},
+                    status_code=200,
+                )
+            else:
+                raise JSONResponse(
+                    content={"message": " SHUUUT Failed to check food status."},
+                    status_code=400,
+                )
+
+    else:
+        return JSONResponse(
+            content={"message": "No registration found."}, status_code=404
+        )
+
 
 @app.put("/api/registrations/{id}/checkin")
 def api_check_in_update(
@@ -502,7 +577,7 @@ def api_volunteer_inquiries(
 
 
 @app.post("/api/review/{id}")
-def review_proposal(id: int, proposal: ProposalReviewModdel, current_user: dict = Depends(get_current_user)):
+def review_proposal(id: int, proposal: ProposalReviewModel, current_user: dict = Depends(get_current_user)):
     """
     API endpoint to review proposal
     """
@@ -948,7 +1023,6 @@ def api_proposals_reconsideration(current_user: dict = Depends(get_current_user)
     if not proposals:
         return JSONResponse(content={"message": "No proposals found."}, status_code=404)
     
-    print("Sorted proposals:", sorted_proposals)
     return sorted_proposals 
 
 @app.get("/api/speakers")
@@ -1083,7 +1157,7 @@ def api_get_volunteer_inquiry(id: int, current_user: dict = Depends(get_current_
 
 
 @app.post("/api/staff")
-def api_add_staff(staff: StaffMobel, current_user: dict = Depends(get_current_user)):
+def api_add_staff(staff: StaffModel, current_user: dict = Depends(get_current_user)):
     """
     API endpoint to add a new staff member.
 
@@ -1191,11 +1265,37 @@ def api_register_attendee(
 
     if not added:
         raise HTTPException(status_code=500, detail="Failed to register attendee")
-
-    return JSONResponse(
-        content={"message": "Attendee registered successfully.", "id": registration.id},
+    try:
+        send_ticket_email(
+            registration.fullName,
+            registration.email,
+            registration_data["id"],
+        )
+        return JSONResponse(
+        content={"message": "Attendee registered successfully.", "id": registration_data["id"]},
         status_code=201,
     )
+    except Exception as e:
+        print(f"Failed to send ticket email: {e}")
+        raise HTTPException(
+            status_code=500, detail="Failed to send ticket email"
+        )
+
+
+
+
+
+@app.patch("/api/speakers/{speaker_id}")
+async def update_speaker(speaker_id: int, update: UpdateSpeakerModel):
+    update_data = update.dict(exclude_unset=True)
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Aucune donnée à mettre à jour.")
+
+    # Simule une mise à jour en base de données
+    print(f"Updating speaker {speaker_id} with: {update_data}")
+
+    return {"speaker_id": speaker_id, "updated": update_data}
 
 
 connected_clients: typing.List[WebSocket] = []
